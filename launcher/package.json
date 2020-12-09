@@ -1,0 +1,108 @@
+{
+	"name": "companion-launcher",
+	"version": "2.2.0",
+	"description": "Companion",
+	"main": "app.js",
+	"build": {
+		"productName": "Companion",
+		"appId": "companion.bitfocus.no",
+		"mac": {
+			"category": "no.bitfocus.companion",
+			"extendInfo": {
+				"LSBackgroundOnly": 1,
+				"LSUIElement": 1
+			},
+			"asarUnpack": [
+				"public",
+				"node_modules/jquery",
+				"node_modules/popper.js/**",
+				"node_modules/bootstrap",
+				"node_modules/bootstrap-colorpicker",
+				"node_modules/pace-progress",
+				"node_modules/perfect-scrollbar",
+				"node_modules/@coreui/coreui",
+				"node_modules/flag-icon-css",
+				"node_modules/font-awesome",
+				"node_modules/moment",
+				"node_modules/select2",
+				"node_modules/tributejs/dist"
+			]
+		},
+		"win": {
+			"target": "nsis"
+		},
+		"nsis": {
+			"artifactName": "companion-win64.exe",
+			"createStartMenuShortcut": true,
+			"perMachine": true,
+			"oneClick": false,
+			"allowElevation": true,
+			"allowToChangeInstallationDirectory": true,
+			"installerIcon": "icon.ico",
+			"installerSidebar": "compinst.bmp",
+			"uninstallerSidebar": "compinst.bmp"
+		},
+		"directories": {
+			"buildResources": "assets/",
+			"output": "electron-output/"
+		},
+		"linux": {
+			"target": "dir"
+		},
+		"files": [
+			"**/*",
+			"assets/icon.png",
+			"assets/trayTemplate.png",
+			"assets/trayTemplate@2x.png",
+			"!font/*",
+			"!tools/*",
+			"!*.md",
+			"!public/js/babel"
+		]
+	},
+	"scripts": {
+		"prod": "electron .",
+		"dev": "rm -rf ./public/js/dist ; DEVELOPER=1 electron .",
+		"macdist": "rm -rf electron-output && electron-builder --publish=never --mac",
+		"windist": "rm -rf electron-output && electron-builder --publish=never --win",
+		"lindist": "rm -rf electron-output && electron-builder --publish=never --linux",
+		"rpidist": "rm -rf electron-output && electron-builder --armv7l --linux",
+		"start": "yarn run"
+	},
+	"repository": "https://github.com/bitfocus/companion",
+	"keywords": [
+		"bitfocus",
+		"companion"
+	],
+	"author": "Bitfocus AS",
+	"license": "MIT",
+	"devDependencies": {
+		"@babel/cli": "^7.12.1",
+		"@babel/core": "^7.12.3",
+		"@babel/preset-env": "^7.12.1",
+		"asar": "^3.0.3",
+		"electron": "^9.3.3",
+		"electron-builder": "^22.9.1",
+		"rimraf": "^3.0.2"
+	},
+	"dependencies": {
+		"@sentry/electron": "^1.3.0",
+		"app-root-path": "^2.0.1",
+		"debug": "^4.2.0",
+		"electron-debug": "^1.5.0",
+		"electron-rpc": "^2.0.1",
+		"find-process": "1.4.3",
+		"forever-monitor": "^3.0.3",
+		"fs-extra": "^9.0.1",
+		"mkdirp": "^0.5.5",
+		"network": "^0.4.1",
+		"ping": "^0.2.2",
+		"popper.js": "1.16.1",
+		"shortid": "^2.2.16",
+		"strip-ansi": "^5.2.0"
+	},
+	"collective": {
+		"type": "donorbox",
+		"url": "https://donorbox.org/bitfocus-opensource"
+	}
+}

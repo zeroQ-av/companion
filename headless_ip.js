@@ -20,10 +20,6 @@ if (process.argv.length < 3) {
 	console.log("Example: ./headless.js 192.168.81.1");
 	process.exit(1);
 }
-system.emit('skeleton-info', 'appVersion', pkg.version );
-system.emit('skeleton-info', 'appBuild', build.trim() );
-system.emit('skeleton-info', 'appName', pkg.description);
-system.emit('skeleton-info', 'configDir', process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'] );
 if (process.env.COMPANION_CONFIG_BASEDIR !== undefined) {
 	system.emit('skeleton-info', 'configDir', process.env.COMPANION_CONFIG_BASEDIR);
 }

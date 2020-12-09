@@ -26,6 +26,7 @@ if (process.env.DEVELOPER !== undefined) {
 global.MAX_BUTTONS = 32;
 global.MAX_BUTTONS_PER_ROW = 8;
 
+
 var EventEmitter = require('events');
 var system = new EventEmitter();
 var fs = require("fs");
@@ -34,7 +35,14 @@ var mkdirp = require('mkdirp');
 var stripAnsi = require('strip-ansi');
 var logbuffer = [];
 var logwriting = false;
-var skeleton_info = {};
+
+const pkgInfo = require('../package.json')
+const buildNumber = fs.readFileSync(__dirname + "/../BUILD").toString().trim();
+const skeleton_info = {
+	appName: pkgInfo.description,
+	appVersion: pkgInfo.version,
+	appBuild: buildNumber,
+};
 
 var config;
 var cfgDir;
