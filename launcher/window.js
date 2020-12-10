@@ -45,11 +45,11 @@ document.getElementById('launch').addEventListener('click', function() {
 });
 
 document.getElementById('hide').addEventListener('click', function() {
-	client.request('skeleton-minimize');
+	client.request('launcher-minimize');
 });
 
 document.getElementById('close').addEventListener('click', function() {
-	client.request('skeleton-close');
+	client.request('launcher-close');
 });
 
 client.request('info', function(err, obj) {
@@ -78,7 +78,7 @@ document.getElementById('ifpb').addEventListener('click', function() {
 
 document.getElementById('ift').addEventListener('click', function() {
 	var e = document.getElementById("ift");
-	client.request('skeleton-start-minimised', e.checked);
+	client.request('launcher-start-minimised', e.checked);
 });
 
 function get_interfaces_list() {

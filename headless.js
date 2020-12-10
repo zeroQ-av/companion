@@ -1,21 +1,9 @@
 #!/usr/bin/env node
 var main = require('./app.js');
-var fs = require("fs");
-var path = require("path");
 var system = main(process.env.DEVELOPER ? false : true);
 var os = require('os');
 
 console.log("Starting");
-
-function packageinfo() {
-	var self = this;
-	var fileContents = fs.readFileSync(__dirname + '/package.json');
-	var object = JSON.parse(fileContents);
-	return object;
-};
-
-var build = fs.readFileSync(__dirname + "/BUILD").toString().trim();
-var pkg = packageinfo();
 
 var ifaces = os.networkInterfaces();
 
@@ -52,13 +40,6 @@ if (process.argv.length > 2 && process.argv[2].substr(0,1) == '-') {
 	});
 }
 
-if (process.env.COMPANION_CONFIG_BASEDIR !== undefined) {
-	system.emit('skeleton-info', 'configDir', process.env.COMPANION_CONFIG_BASEDIR);
-}
-else {
-	system.emit('skeleton-info', 'configDir', process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'] );
-}
-
 var port = '8000';
 
 if (process.argv[3] != null) {
@@ -78,10 +59,8 @@ if (process.argv[2] in ifaces) {
 		});
 
 		setTimeout(function () {
-				system.emit('skeleton-bind-ip', address);
-				system.emit('skeleton-bind-port', port);
-				system.emit('skeleton-ready');
-				console.log("Started");
+			system.emit('init_ip_bind', address, port);
+			console.log("Started");
 		}, 1000);
 }
 else {

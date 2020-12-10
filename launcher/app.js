@@ -7,6 +7,7 @@ var url = require('url')
 var fs = require("fs");
 const { init, showReportDialog, configureScope } = require('@sentry/electron');
 const Forever = require('forever-monitor')
+const Store = require('electron-store')
 
 /* Module should return true if this application should be single instance only */
 const lock = app.requestSingleInstanceLock();
@@ -19,6 +20,13 @@ if (!lock) {
 const buildNumber = fs.readFileSync(__dirname + "/../BUILD").toString().trim();
 
 const pkgInfo = require('./package.json');
+
+const store = new Store({
+	name: 'launcherConfig',
+	defaults: {
+		startMinimised: false,
+	}
+});
 
 init({
 	dsn: 'https://535745b2e446442ab024d1c93a349154@sentry.bitfocus.io/8',
@@ -40,8 +48,7 @@ var skeleton_info = {
 	appVersion: '',
 	appURL: '',
 	appStatus: '',
-	configDir: app.getPath('appData'),
-	startMinimised: '',
+	startMinimised: store.get('startMinimised'),
 };
 
 let child
@@ -50,8 +57,15 @@ function restartChild() {
 		child.stop()
 	}
 
-	child = new (Forever.Monitor)('./test.js', {
-	
+	child = new (Forever.Monitor)(['node', '../app.js'], {
+		fork: true,
+		// killTree: false,
+		// watch: false,
+		// silent: true,
+		env: {
+			COMPANION_CONFIG_BASEDIR: app.getPath('appData'),
+			START_NOW: 1,
+		},
 	})
 	
 	child.on('exit', () => {
@@ -60,6 +74,8 @@ function restartChild() {
 	child.on('message', (a, b, c) => {
 		console.log('message', a, b, c)
 	})
+	child.start();
+	child.send('hi')
 }
 
 // TODO - find child if a pid file exists
@@ -103,11 +119,11 @@ function createWindow() {
 		cb(null, "Started");
 	});
 
-	// rpc.on('skeleton-close', function(req, cb) {
+	// rpc.on('launcher-close', function(req, cb) {
 	// 	system.emit('exit');
 	// });
 
-	rpc.on('skeleton-minimize', function(req, cb) {
+	rpc.on('launcher-minimize', function(req, cb) {
 		window.hide();
 	});
 
@@ -121,21 +137,20 @@ function createWindow() {
 	// 	system.emit('skeleton-bind-port', req.body);
 	// });
 
-	// rpc.on('skeleton-start-minimised', function(req, cb) {
-	// 	console.log("changed start minimized:",req.body)
-	// 	system.emit('skeleton-start-minimised', req.body);
-	// });
+	rpc.on('launcher-start-minimised', function(req, cb) {
+		console.log("changed start minimized:", req.body)
+		store.set('startMinimised', req.body)
+	});
 
 	// rpc.on('skeleton-ready', function(req, cb) {
 	// 	system.emit('skeleton-ready');
 	// });
 
-	// system.on('skeleton-ip-unavail', function() {
-	// });
-
 	// system.on('skeleton-info', function(key,val) {
-	// 	skeleton_info[key] = val;
-	// 	rpc.send('info', skeleton_info);
+	// 	if (key !== 'startMinimised') {
+	// 		skeleton_info[key] = val;
+	// 		rpc.send('info', skeleton_info);
+	// 	}
 	// });
 
 	// system.on('restart', function() {
@@ -160,7 +175,6 @@ function createWindow() {
 	try {
 		var pkg = pkgInfo;
 		// system.emit('skeleton-info', 'appStatus', 'Starting');
-		// system.emit('skeleton-info', 'configDir', app.getPath('appData') );
 		
 		configureScope(function(scope) {
 			var machidFile = app.getPath('appData') + '/companion/machid'

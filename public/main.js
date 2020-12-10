@@ -157,8 +157,8 @@ socket.on('connect', function() {
 
 $(function() {
 
-	socket.on('skeleton-info', function(hash) {
-		$("#versiontext").text(hash.appVersion+ " (" + hash.appBuild.replace("master-","").replace(hash.appVersion + "-", "") + ")");
+	socket.on('version-info', function(info) {
+		$("#versiontext").text(info.appVersion+ " (" + info.appBuild.replace("master-","").replace(info.appVersion + "-", "") + ")");
 	});
 
 
