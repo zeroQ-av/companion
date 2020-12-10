@@ -104,8 +104,3 @@ function get_interfaces_list() {
 }
 
 get_interfaces_list();
-
-client.request('skeleton-ready');
-
-
-//alert( JSON.stringify( {dir:  } ));

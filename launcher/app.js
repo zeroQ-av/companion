@@ -41,6 +41,7 @@ init({
 
 var window;
 var tray = null;
+let shutting_down = false
 
 var skeleton_info = {
 	appName: '',
@@ -62,6 +63,7 @@ function restartChild() {
 		// killTree: false,
 		// watch: false,
 		// silent: true,
+		killTTL: 30000,
 		env: {
 			COMPANION_CONFIG_BASEDIR: app.getPath('appData'),
 			START_NOW: 1,
@@ -70,8 +72,17 @@ function restartChild() {
 	
 	child.on('exit', () => {
 		console.log('child exited')
+		if (shutting_down) {
+			app.exit();
+		}
 	})
-	child.on('message', (a, b, c) => {
+	child.on('message', (msg, b, c) => {
+		switch(msg.event) {
+			case 'skeleton-info':
+				skeleton_info[msg.key] = msg.val;
+				rpc.send('info', skeleton_info);
+				break
+		}
 		console.log('message', a, b, c)
 	})
 	child.start();
@@ -119,44 +130,44 @@ function createWindow() {
 		cb(null, "Started");
 	});
 
-	// rpc.on('launcher-close', function(req, cb) {
-	// 	system.emit('exit');
-	// });
+	rpc.on('launcher-close', function(req, cb) {
+		shutting_down = true;
+
+		try {
+			child.send({ event: 'exit' });
+			// Do a kill with a timeout, in case it gets stuck. This also stops the auto-restart
+			child.kill(true)
+		} catch (e) {
+			app.exit()
+		}
+	});
 
 	rpc.on('launcher-minimize', function(req, cb) {
 		window.hide();
 	});
 
-	// rpc.on('skeleton-bind-ip', function(req, cb) {
-	// 	console.log("changed bind ip:",req.body)
-	// 	system.emit('skeleton-bind-ip', req.body);
-	// });
+	rpc.on('skeleton-bind-ip', function(req, cb) {
+		console.log("changed bind ip:",req.body)
+		try {
+			child.send({ event: 'skeleton-bind-ip', data: req.body });
+		} catch (e) {
+			electron.dialog.showErrorBox('Failed to set interface', e);
+		}
+	});
 
-	// rpc.on('skeleton-bind-port', function(req, cb) {
-	// 	console.log("changed bind port:",req.body)
-	// 	system.emit('skeleton-bind-port', req.body);
-	// });
+	rpc.on('skeleton-bind-port', function(req, cb) {
+		console.log("changed bind port:",req.body)
+		try {
+			child.send({ event: 'skeleton-bind-port', data: req.body });
+		} catch (e) {
+			electron.dialog.showErrorBox('Failed to set interface', e);
+		}
+	});
 
 	rpc.on('launcher-start-minimised', function(req, cb) {
 		console.log("changed start minimized:", req.body)
 		store.set('startMinimised', req.body)
 	});
-
-	// rpc.on('skeleton-ready', function(req, cb) {
-	// 	system.emit('skeleton-ready');
-	// });
-
-	// system.on('skeleton-info', function(key,val) {
-	// 	if (key !== 'startMinimised') {
-	// 		skeleton_info[key] = val;
-	// 		rpc.send('info', skeleton_info);
-	// 	}
-	// });
-
-	// system.on('restart', function() {
-	// 	app.relaunch()
-	// 	app.exit()
-	// });
 
 	// system.on('skeleton-log', function(line) {
 	// 	rpc.send('log', line);
@@ -171,22 +182,13 @@ function createWindow() {
 			showWindow();
 		}
 	});
-
-	try {
-		var pkg = pkgInfo;
-		// system.emit('skeleton-info', 'appStatus', 'Starting');
 		
-		configureScope(function(scope) {
-			var machidFile = app.getPath('appData') + '/companion/machid'
-			var machid = fs.readFileSync(machidFile).toString().trim()
-			scope.setUser({"id": machid});
-			scope.setExtra("build", buildNumber);
-		});
-		
-
-	} catch (e) {
-		console.log("Error reading BUILD and/or package info: ", e);
-	}
+	configureScope(function(scope) {
+		var machidFile = app.getPath('appData') + '/companion/machid'
+		var machid = fs.readFileSync(machidFile).toString().trim()
+		scope.setUser({"id": machid});
+		scope.setExtra("build", buildNumber);
+	});
 }
 
 function createTray() {
@@ -217,21 +219,21 @@ app.whenReady().then(function () {
 	createTray();
 	createWindow();
 
-	// electron.powerMonitor.on('suspend', () => {
-	// 	system.emit('skeleton-power', 'suspend');
-	// });
+	electron.powerMonitor.on('suspend', () => {
+		child.send({ event: 'skeleton-power', data: 'suspend' })
+	});
 
-	// electron.powerMonitor.on('resume', () => {
-	// 	system.emit('skeleton-power', 'resume');
-	// });
+	electron.powerMonitor.on('resume', () => {
+		child.send({ event: 'skeleton-power', data: 'resume' })
+	});
 
-	// electron.powerMonitor.on('on-ac', () => {
-	// 	system.emit('skeleton-power', 'ac');
-	// });
+	electron.powerMonitor.on('on-ac', () => {
+		child.send({ event: 'skeleton-power', data: 'ac' })
+	});
 
-	// electron.powerMonitor.on('on-battery', () => {
-	// 	system.emit('skeleton-power', 'battery');
-	// });
+	electron.powerMonitor.on('on-battery', () => {
+		child.send({ event: 'skeleton-power', data: 'battery' })
+	});
 
 });
 

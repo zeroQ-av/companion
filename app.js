@@ -43,37 +43,42 @@ const skeleton_info = {
 	appName: pkgInfo.description,
 	appVersion: pkgInfo.version,
 	appBuild: buildNumber,
+	appStatus: 'Starting',
 };
 
 var config;
 var cfgDir;
 
-console.log('Starting app?')
-
 if (process.send) {
-	console.log('can send')
-	process.send("Hello");
+	console.log('Sending skeleton-info')
+	for (const [key, val] of Object.entries(skeleton_info)) {
+		process.send({ event: 'skeleton-info', key, val })
+	}
 }
 
 process.on('message', message => {
 	console.log('message from parent:', message);
 	if (message.event) {
 		switch (message.event) {
-			case 'skeleton-bind-ip':
+			case 'skeleton-bind-ip': {
+				const ip = message.data
 				config.bind_ip = ip;
 				system.emit('config_set', 'bind_ip', ip);
 				system.emit('ip_rebind');
 				break
+			}
 			
 			case 'skeleton-bind-port':
-				var p = parseInt(port);
-				if (p >= 1024 && p <= 65535) {
-					config.http_port = p;
-					system.emit('config_set', 'http_port', p);
+				const port = parseInt(message.data);
+				if (port >= 1024 && port <= 65535) {
+					config.http_port = port;
+					system.emit('config_set', 'http_port', port);
 					system.emit('ip_rebind');
 				}
 				break
-			
+			case 'skeleton-power':
+				system.emit('skeleton-power', message.data)
+				break
 		}
 	}
 });
@@ -94,6 +99,14 @@ config = new (require('./lib/config'))(system, cfgDir, {
 
 system.on('skeleton-info', function(key, val) {
 	skeleton_info[key] = val;
+
+	if (process.send) {
+		process.send({
+			event: 'skeleton-info',
+			key: key,
+			val: val,
+		})
+	}
 });
 
 system.on('configdir_get', function (cb) {
@@ -107,7 +120,6 @@ system.on('skeleton-info-info', function(cb) {
 system.on('config_loaded', function(config) {
 	system.emit('skeleton-info', 'appURL', 'Waiting for webserver..');
 	system.emit('skeleton-info', 'appStatus', 'Starting');
-	system.emit('skeleton-info', 'bindInterface', config.bind_ip);
 });
 
 system.on('exit', function() {
