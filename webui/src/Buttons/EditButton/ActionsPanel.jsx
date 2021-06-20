@@ -12,9 +12,10 @@ import { GenericConfirmModal } from '../../Components/GenericConfirmModal'
 
 export function ActionsPanel({ page, bank, set, dragId, addPlaceholder, setLoadStatus, reloadToken }) {
 	const context = useContext(StaticContext)
-	const [actions, setActions] = useState([])
 
 	const confirmModal = useRef()
+
+	const [actions, setActions] = useState([])
 
 	// Ensure the correct data is loaded
 	useEffect(() => {
@@ -31,6 +32,77 @@ export function ActionsPanel({ page, bank, set, dragId, addPlaceholder, setLoadS
 			})
 	}, [context.socket, setLoadStatus, page, bank, set, reloadToken])
 
+	const emitUpdateOption = useCallback(
+		(actionId, key, val) => {
+			context.socket.emit('bank_update_action_option', page, bank, set, actionId, key, val)
+		},
+		[context.socket, page, bank, set]
+	)
+	const emitSetDelay = useCallback(
+		(actionId, delay) => {
+			context.socket.emit('bank_update_action_delay', page, bank, set, actionId, delay)
+		},
+		[context.socket, page, bank, set]
+	)
+
+	const emitDelete = useCallback(
+		(actionId) => {
+			context.socket.emit('bank_action_delete', page, bank, set, actionId)
+		},
+		[context.socket, page, bank, set]
+	)
+
+	const emitOrder = useCallback(
+		(dragIndex, hoverIndex) => {
+			context.socket.emit('bank_update_action_option_order', page, bank, set, dragIndex, hoverIndex)
+		},
+		[context.socket, page, bank, set]
+	)
+
+	const addAction = useCallback(
+		(actionType) => {
+			socketEmit(context.socket, 'bank_action_add', [page, bank, set, actionType])
+				.then(([page, bank, actions]) => {
+					setActions(actions || [])
+				})
+				.catch((e) => {
+					console.error('Failed to add bank action', e)
+				})
+		},
+		[context.socket, page, bank, set]
+	)
+
+	return (
+		<>
+			<GenericConfirmModal ref={confirmModal} />
+			<ActionsPanelInner
+				dragId={dragId}
+				addPlaceholder={addPlaceholder}
+				confirmModal={confirmModal}
+				actions={actions}
+				setActions={setActions}
+				emitUpdateOption={emitUpdateOption}
+				emitSetDelay={emitSetDelay}
+				emitDelete={emitDelete}
+				emitOrder={emitOrder}
+				addAction={addAction}
+			/>
+		</>
+	)
+}
+
+export function ActionsPanelInner({
+	dragId,
+	addPlaceholder,
+	confirmModal,
+	actions,
+	setActions,
+	emitUpdateOption,
+	emitSetDelay,
+	emitDelete,
+	emitOrder,
+	addAction,
+}) {
 	const setValue = useCallback(
 		(actionId, key, val) => {
 			// The server doesn't repond to our change, so we assume it was ok
@@ -39,7 +111,9 @@ export function ActionsPanel({ page, bank, set, dragId, addPlaceholder, setLoadS
 
 				const oldValue = (oldActions[actionIndex].options || {})[key]
 				if (oldValue !== val) {
-					context.socket.emit('bank_update_action_option', page, bank, set, actionId, key, val)
+					if (emitUpdateOption) {
+						emitUpdateOption(actionId, key, val)
+					}
 
 					return update(oldActions, {
 						[actionIndex]: {
@@ -53,7 +127,7 @@ export function ActionsPanel({ page, bank, set, dragId, addPlaceholder, setLoadS
 				}
 			})
 		},
-		[context.socket, page, bank, set]
+		[emitUpdateOption, setActions]
 	)
 
 	const doDelay = useCallback(
@@ -64,7 +138,9 @@ export function ActionsPanel({ page, bank, set, dragId, addPlaceholder, setLoadS
 
 				const oldValue = oldActions[actionIndex].options?.delay
 				if (oldValue !== delay) {
-					context.socket.emit('bank_update_action_delay', page, bank, set, actionId, delay)
+					if (emitSetDelay) {
+						emitSetDelay(actionId, delay)
+					}
 
 					return update(oldActions, {
 						[actionIndex]: {
@@ -76,39 +152,34 @@ export function ActionsPanel({ page, bank, set, dragId, addPlaceholder, setLoadS
 				}
 			})
 		},
-		[context.socket, page, bank, set]
+		[emitSetDelay, setActions]
 	)
 
-	const deleteAction = useCallback((actionId) => {
-		setActions((oldActions) => oldActions.filter((a) => a.id !== actionId))
-	}, [])
 	const doDelete = useCallback(
 		(actionId) => {
-			confirmModal.current.show('Delete action', 'Delete action?', 'Delete', () => {
-				context.socket.emit('bank_action_delete', page, bank, set, actionId)
-				deleteAction(actionId)
-			})
-		},
-		[context.socket, page, bank, set, deleteAction]
-	)
-
-	const addAction = useCallback(
-		(actionType) => {
-			socketEmit(context.socket, 'bank_action_add', [page, bank, set, actionType])
-				.then(([actions]) => {
-					setActions(actions || [])
+			if (confirmModal) {
+				confirmModal.current.show('Delete action', 'Delete action?', 'Delete', () => {
+					if (emitDelete) {
+						emitDelete(actionId)
+					}
+					setActions((oldActions) => oldActions.filter((a) => a.id !== actionId))
 				})
-				.catch((e) => {
-					console.error('Failed to add bank action', e)
-				})
+			} else {
+				if (emitDelete) {
+					emitDelete(actionId)
+				}
+				setActions((oldActions) => oldActions.filter((a) => a.id !== actionId))
+			}
 		},
-		[context.socket, bank, page, set]
+		[emitDelete, setActions, confirmModal]
 	)
 
 	const moveCard = useCallback(
 		(dragIndex, hoverIndex) => {
 			// The server doesn't repond to our change, so we assume it was ok
-			context.socket.emit('bank_update_action_option_order', page, bank, set, dragIndex, hoverIndex)
+			if (emitOrder) {
+				emitOrder(dragIndex, hoverIndex)
+			}
 
 			setActions((actions) => {
 				const dragCard = actions[dragIndex]
@@ -120,13 +191,11 @@ export function ActionsPanel({ page, bank, set, dragId, addPlaceholder, setLoadS
 				})
 			})
 		},
-		[context.socket, page, bank, set]
+		[emitOrder, setActions]
 	)
 
 	return (
 		<>
-			<GenericConfirmModal ref={confirmModal} />
-
 			<table className="table action-table">
 				<tbody>
 					{actions.map((a, i) => (
