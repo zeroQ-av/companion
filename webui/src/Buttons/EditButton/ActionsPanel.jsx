@@ -62,7 +62,7 @@ export function ActionsPanel({ page, bank, set, dragId, addPlaceholder, setLoadS
 	const addAction = useCallback(
 		(actionType) => {
 			socketEmit(context.socket, 'bank_action_add', [page, bank, set, actionType])
-				.then(([page, bank, actions]) => {
+				.then(([actions]) => {
 					setActions(actions || [])
 				})
 				.catch((e) => {
