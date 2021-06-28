@@ -2,61 +2,8 @@ name: Build binaries
 on: [push]
 
 jobs:
-  linux64:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [14.x]
-    steps:
-      - uses: actions/checkout@v1
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: yarn update and lindist
-        run: |
-          yarn update
-          yarn run lindist
-
-          # manually tar it, to preserve the symlinks
-          cd electron-output
-          VERSION=$(node -e "console.log(require('../package.json').version)")
-          mv linux-unpacked companion-$VERSION
-          tar -cvzf companion-$VERSION.tar.gz companion-$VERSION
-      - name: rename and upload stuff
-        run: node ./tools/build_rename_git.js
-        env:
-          CI_BUILD_OS: linux
-          BITFOCUS_S3: ${{ secrets.BITFOCUS_S3 }}
-          BITFOCUS_KEY: ${{ secrets.BITFOCUS_ACCESS }}
-          BITFOCUS_SECRET: ${{ secrets.BITFOCUS_SECRET }}
-
-  osx:
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        node-version: [14.x]
-    steps:
-      - uses: actions/checkout@v1
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
-        with:
-          node-version: ${{ matrix.node-version }}
-      - name: yarn update and macdist
-        run: |
-          yarn update
-          yarn run macdist
-      - name: rename and upload stuff
-        run: node ./tools/build_rename_git.js
-        env:
-          CI_BUILD_OS: osx
-          CI_BUILD_ARCH: x64
-          BITFOCUS_S3: ${{ secrets.BITFOCUS_S3 }}
-          BITFOCUS_KEY: ${{ secrets.BITFOCUS_ACCESS }}
-          BITFOCUS_SECRET: ${{ secrets.BITFOCUS_SECRET }}
-
-  # osx-arm64:
-  #   runs-on: macos-11
+  # linux64:
+  #   runs-on: ubuntu-latest
   #   strategy:
   #     matrix:
   #       node-version: [14.x]
@@ -66,21 +13,52 @@ jobs:
   #       uses: actions/setup-node@v1
   #       with:
   #         node-version: ${{ matrix.node-version }}
-  #     - name: yarn update and macarmdist
+  #     - name: yarn update and lindist
   #       run: |
   #         yarn update
-  #         yarn run macarmdist
+  #         yarn run lindist
+
+  #         # manually tar it, to preserve the symlinks
+  #         cd electron-output
+  #         VERSION=$(node -e "console.log(require('../package.json').version)")
+  #         mv linux-unpacked companion-$VERSION
+  #         tar -cvzf companion-$VERSION.tar.gz companion-$VERSION
   #     - name: rename and upload stuff
   #       run: node ./tools/build_rename_git.js
   #       env:
-  #         CI_BUILD_OS: osx
-  #         CI_BUILD_ARCH: arm64
+  #         CI_BUILD_OS: linux
   #         BITFOCUS_S3: ${{ secrets.BITFOCUS_S3 }}
   #         BITFOCUS_KEY: ${{ secrets.BITFOCUS_ACCESS }}
   #         BITFOCUS_SECRET: ${{ secrets.BITFOCUS_SECRET }}
 
-  win64:
-    runs-on: windows-latest
+  # osx:
+  #   runs-on: macos-latest
+  #   strategy:
+  #     matrix:
+  #       node-version: [14.x]
+  #   steps:
+  #     - uses: actions/checkout@v1
+  #     - name: Use Node.js ${{ matrix.node-version }}
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #     - name: yarn update and macdist
+  #       run: |
+  #         yarn update
+  #         yarn run macdist
+  #       env:
+  #         CSC_LINK: ${{ secrets.BETA_SIGN_CERT }}
+  #     - name: rename and upload stuff
+  #       run: node ./tools/build_rename_git.js
+  #       env:
+  #         CI_BUILD_OS: osx
+  #         CI_BUILD_ARCH: x64
+  #         BITFOCUS_S3: ${{ secrets.BITFOCUS_S3 }}
+  #         BITFOCUS_KEY: ${{ secrets.BITFOCUS_ACCESS }}
+  #         BITFOCUS_SECRET: ${{ secrets.BITFOCUS_SECRET }}
+
+  osx-arm64:
+    runs-on: macos-11
     strategy:
       matrix:
         node-version: [14.x]
@@ -90,17 +68,43 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - name: yarn update and windist
+      - name: yarn update and macarmdist
         run: |
-          # This fixes it somehow, and without it we get no logs from any shell scripts which are run
-          yarn config set script-shell bash
-
           yarn update
-          yarn run windist
+          yarn run macarmdist
+        env:
+          CSC_LINK: ${{ secrets.BETA_SIGN_CERT }}
       - name: rename and upload stuff
         run: node ./tools/build_rename_git.js
         env:
-          CI_BUILD_OS: win64
+          CI_BUILD_OS: osx
+          CI_BUILD_ARCH: arm64
           BITFOCUS_S3: ${{ secrets.BITFOCUS_S3 }}
           BITFOCUS_KEY: ${{ secrets.BITFOCUS_ACCESS }}
           BITFOCUS_SECRET: ${{ secrets.BITFOCUS_SECRET }}
+
+  # win64:
+  #   runs-on: windows-latest
+  #   strategy:
+  #     matrix:
+  #       node-version: [14.x]
+  #   steps:
+  #     - uses: actions/checkout@v1
+  #     - name: Use Node.js ${{ matrix.node-version }}
+  #       uses: actions/setup-node@v1
+  #       with:
+  #         node-version: ${{ matrix.node-version }}
+  #     - name: yarn update and windist
+  #       run: |
+  #         # This fixes it somehow, and without it we get no logs from any shell scripts which are run
+  #         yarn config set script-shell bash
+
+  #         yarn update
+  #         yarn run windist
+  #     - name: rename and upload stuff
+  #       run: node ./tools/build_rename_git.js
+  #       env:
+  #         CI_BUILD_OS: win64
+  #         BITFOCUS_S3: ${{ secrets.BITFOCUS_S3 }}
+  #         BITFOCUS_KEY: ${{ secrets.BITFOCUS_ACCESS }}
+  #         BITFOCUS_SECRET: ${{ secrets.BITFOCUS_SECRET }}
