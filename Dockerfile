@@ -19,6 +19,7 @@ RUN curl -L https://yarnpkg.com/latest.tar.gz | tar xvz && mv yarn-v* $HOME/.yar
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils 
 RUN apt-get install -y --no-install-recommends libudev-dev 
 RUN apt-get install -y --no-install-recommends libgusb-dev 
+RUN yarn --frozen-lockfile
 RUN $APPDIR/tools/update.sh 
     #$APPDIR/tools/build_writefile.sh
 
