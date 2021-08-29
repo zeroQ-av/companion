@@ -46,7 +46,7 @@ fi
 set -e
 
 heading "Core"
-yarn --frozen-lockfile
+yarn --frozen-lockfile  --network-timeout 1000000000
 echo
 
 heading "UI"
