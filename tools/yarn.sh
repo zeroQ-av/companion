@@ -47,6 +47,8 @@ set -e
 
 heading "Core"
 yarn --frozen-lockfile
+yarn --frozen-lockfile
+yarn --frozen-lockfile
 echo
 
 heading "UI"
